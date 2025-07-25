@@ -59,6 +59,7 @@ def available_seats():
 
     cursor = connection.cursor()
     cursor.execute("SELECT seat_name FROM Reservations WHERE reservation_date=?", selected_date)
+    #cursor.execute("SELECT name as seat_name FROM Seats WHERE NOT EXISTS(SELECT 1 FROM Reservations WHERE Reservations.seat_name = Seats.name and Reservations.reservation_date=?", selected_date)
     reserved_seats = [row.seat_name for row in cursor.fetchall()]
 
     if reserved_seats:
@@ -66,7 +67,7 @@ def available_seats():
         query = f"SELECT name FROM Seats WHERE name NOT IN ({placeholders})"
         cursor.execute(query, reserved_seats)
     else:
-        cursor.execute("SELECT name FROM Seats")
+        cursor.execute("SELECT name FROM Seats WHERE NOT EXISTS(SELECT 1 FROM Reservations WHERE Reservations.seat_name = Seats.name and Reservations.reservation_date=?", selected_date)
 
     available = [row.name for row in cursor.fetchall()]
     return jsonify({'available_seats': available})
@@ -130,5 +131,55 @@ def create_reservation():
         connection.rollback()
         return jsonify({'error': str(e)}), 500
 
+# DELETE route to cancel a reservation
+@app.route('/api/reservations', methods=['DELETE'])
+def cancel_reservation():
+    data = request.get_json()
+    user_email = data.get('user_email')
+    seat_name = data.get('seat_name')
+    date_str = data.get('reservation_date')
+
+    if not all([user_email, seat_name, date_str]):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    try:
+        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except:
+        return jsonify({'error': 'Invalid reservation date format'}), 400
+
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "DELETE FROM Reservations WHERE user_email=? AND seat_name=? AND reservation_date=?",
+        (user_email, seat_name, selected_date)
+    )
+    rows_deleted = cursor.rowcount
+
+    if rows_deleted == 0:
+        return jsonify({'error': 'No matching reservation found'}), 404
+
+    connection.commit()
+    return jsonify({'message': 'Reservation cancelled'}), 200
+
+@app.route('/api/seats/reserved', methods=['GET'])
+def reserved_seats():
+    date_str = request.args.get('date')
+    try:
+        selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except:
+        return jsonify({'error': 'Invalid date format (use YYYY-MM-DD)'}), 400
+
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT seat_name, user_email FROM Reservations WHERE reservation_date = ?",
+        (selected_date,)
+    )
+    reservations = [{'seat_name': row.seat_name, 'user_email': row.user_email} for row in cursor.fetchall()]
+    return jsonify({'reserved_seats': reservations})
+
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False,host='0.0.0.0', port=5000)
+    # For Flask (ensure you're listening on all interfaces)
+
