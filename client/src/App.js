@@ -105,8 +105,8 @@ function App() {
         setLoading(true);
         setError(null);
         try {
-            const availableRes = await fetch(`http://10.99.2.143:5000/api/seats/available?date=${encodeURIComponent(date)}`);
-            const reservedRes = await fetch(`http://10.99.2.143:5000/api/seats/reserved?date=${encodeURIComponent(date)}`);
+            const availableRes = await fetch(`http://10.99.12.152:5000/api/seats/available?date=${encodeURIComponent(date)}`);
+            const reservedRes = await fetch(`http://10.99.12.152:5000/api/seats/reserved?date=${encodeURIComponent(date)}`);
 
             if (!availableRes.ok || !reservedRes.ok) {
                 throw new Error('Failed to load seat data');
@@ -142,7 +142,7 @@ function App() {
 
         try {
             window.localStorage.setItem('user_email', email);
-            const response = await fetch('http://10.99.2.143:5000/api/reservations', {
+            const response = await fetch('http://10.99.12.152:5000/api/reservations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -171,7 +171,7 @@ function App() {
         }
 
         try {
-            const response = await fetch('http://10.99.2.143:5000/api/reservations', {
+            const response = await fetch('http://10.99.12.152:5000/api/reservations', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
